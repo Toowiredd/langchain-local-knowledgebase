@@ -295,6 +295,30 @@ app.post('/api/live', async (req, res) => {
   }
 })
 
+/* New feature endpoint to fetch document metadata */
+app.get('/api/document-metadata', async (req, res) => {
+  const { collection } = req.query;
+  if (!collection) {
+    res.status(400).json({ message: 'Collection name is required' });
+    return;
+  }
+  try {
+    const encodedCollection = await sanitize(collection);
+    const vectorStore = await OpenSearchVectorStore.fromExistingIndex(
+      new OpenAIEmbeddings(),
+      {
+        client,
+        indexName: encodedCollection,
+      }
+    );
+    const metadata = vectorStore.getMetadata();
+    res.json({ success: true, metadata });
+  } catch (err) {
+    console.error('Error fetching document metadata:', err);
+    res.status(500).json({ message: 'Error fetching document metadata' });
+  }
+});
+
 /* Get a response using the vector store */
 app.post('/api/question', async (req, res) => {
   const {
@@ -516,3 +540,4 @@ async function addURL(url, encodedCollection, chunkSize, chunkOverlap) {
   vectorStore = null
   console.log('✔ Added!')
 }
+
